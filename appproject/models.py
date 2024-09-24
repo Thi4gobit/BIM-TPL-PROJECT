@@ -61,7 +61,6 @@ class FieldSet(models.Model):
         Group, on_delete=models.CASCADE,
         related_name='customfield_group',
     )
-    priority = models.IntegerField(unique=False, blank=True, null=True)
     is_identifier = models.BooleanField(default=False)
     is_hidden = models.BooleanField(default=False)
 
@@ -101,33 +100,3 @@ class Obj(models.Model):
                 name='unique_together_item_field'
             )
         ]
-
-
-
-
-
-# class MainModel(models.Model):
-#     name = models.CharField(max_length=100)  # Apenas um exemplo de atributo
-#     update_date = models.DateTimeField(
-#         auto_now=False, blank=True, null=True,
-#     )
-#     updated_by = models.ForeignKey(
-#         User, on_delete=models.PROTECT, blank=True, null=True,
-#         related_name='st_category_updated_by',
-#     )
-#     approved = models.BooleanField(
-#         default=False,
-#     )
-#     approve_date = models.DateTimeField(
-#         auto_now=False, blank=True, null=True,
-#     )
-#     approved_by = models.ForeignKey(
-#         User, on_delete=models.PROTECT, blank=True, null=True,
-#         related_name='st_category_approved_by',
-#     )
-#     pendency = models.ForeignKey(
-#         'self', on_delete=models.CASCADE, blank=True, null=True,
-#         related_name='st_category_pendency',
-#     )
-#     def __str__(self):
-#         return self.name
