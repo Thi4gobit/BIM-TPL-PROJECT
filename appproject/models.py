@@ -45,11 +45,11 @@ class FieldSelfRelationship(models.Model):
     class Meta:
         constraints = [
             models.UniqueConstraint(
-                fields=['field', 'subfield'], 
-                name='unique_field_subfield_relationship'
+                fields=['field', 'subfield'],
+                name='unique_together_field_subfield'
             )
         ]
-    
+
 
 class CustomField(models.Model):
 
@@ -61,8 +61,6 @@ class CustomField(models.Model):
         GroupField, on_delete=models.CASCADE,
         related_name='customfield_group',
     )
-    is_required = models.BooleanField(default=False)
-    is_unique = models.BooleanField(default=False)
     priority = models.IntegerField(unique=False, blank=True, null=True)
     is_identifier = models.BooleanField(default=False)
     is_hidden = models.BooleanField(default=False)
@@ -71,7 +69,12 @@ class CustomField(models.Model):
         return f'{self.field.name}'
     
     class Meta:
-        unique_together = ('field', 'group')
+        constraints = [
+            models.UniqueConstraint(
+                fields=['field', 'group'],
+                name='unique_together_field_group'
+            )
+        ]
 
 
 class CustomService(models.Model):
@@ -84,10 +87,20 @@ class CustomService(models.Model):
         CustomField, on_delete=models.CASCADE,
         related_name='customfieldvalue_field'
     )
-    value = models.CharField(max_length=4000)
+    value = models.CharField(
+        max_length=4000, blank=True, null=True
+    )
 
     def __str__(self):
         return f'{self.item.item}.{self.field.field.name}'
+    
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['item', 'field'],
+                name='unique_together_item_field'
+            )
+        ]
 
 
 

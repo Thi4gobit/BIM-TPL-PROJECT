@@ -34,12 +34,12 @@ class CustomFieldAdmin(admin.ModelAdmin):
 
     exclude = []
     list_display = (
-        'pk', 'field__name', 'group__name', 'is_required', 'is_unique',
+        'pk', 'field__name', 'group__name',
         'priority'
     )
     # list_display_links = ['field']
     search_fields = ['field__name', 'group__name']
-    list_filter = ['is_required', 'is_unique']
+    # list_filter = ['is_required', 'is_unique']
     show_facets = admin.ShowFacets.ALWAYS
 
 

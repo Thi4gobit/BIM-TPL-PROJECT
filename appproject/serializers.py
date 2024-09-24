@@ -23,10 +23,7 @@ class ItemSerializer(serializers.ModelSerializer):
         fields = ['id', 'item']
 
 
-class FieldSelfRelationshipSerializer(serializers.ModelSerializer):
-
-    # field = FieldSerializer()
-    # subfield = FieldSerializer()
+class FieldRelationshipSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = FieldSelfRelationship
@@ -34,22 +31,26 @@ class FieldSelfRelationshipSerializer(serializers.ModelSerializer):
             'id', 'field', 'subfield', 'sequence', 
             'text_before', 'text_after'
         ]
+        extra_kwargs = {
+            'id': {'read_only': False}  # Permite que o campo 'id' seja modificado
+        }
     
     def validate(self, data):
         field = data.get('field')
         subfield = data.get('subfield')
         if field == subfield:
-                raise serializers.ValidationError(
-                    f"Self-relationship is forbbiden ({field})."
-                )
-        if isinstance(self.initial_data, list):
-            list_input = self.initial_data
-            for i in list_input:
-                if i['field'] == field and i['subfield'] == subfield:
-                    raise serializers.ValidationError(
-                        f"Duplicated: '{field}' and '{subfield}'."
-                    )
+            raise serializers.ValidationError(
+                f"Self-relationship is forbbiden ({field})."
+            )
         return data
+    
+    # def update(self, instance, validated_data):
+    #     for attr, value in validated_data.items():
+    #         setattr(instance, attr, value)
+    #     instance.save()
+    #     return instance
+
+
 
 
 class CustomFieldSerializer(serializers.ModelSerializer):
