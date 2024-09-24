@@ -55,9 +55,9 @@ class CustomServiceAdmin(admin.ModelAdmin):
 admin.site.site_header = ""
 admin.site.site_title = "BIM-PROJECT"
 admin.site.index_title = ""
-admin.site.register(GroupField, GroupFieldAdmin)
+admin.site.register(Group, GroupFieldAdmin)
 admin.site.register(Field, FieldAdmin)
 admin.site.register(Item, ItemAdmin)
-admin.site.register(CustomField, CustomFieldAdmin)
-admin.site.register(CustomService, CustomServiceAdmin)
-admin.site.register(FieldSelfRelationship, FieldSelfRelationshipAdmin)
+admin.site.register(FieldSet, CustomFieldAdmin)
+admin.site.register(Obj, CustomServiceAdmin)
+admin.site.register(FieldLink, FieldSelfRelationshipAdmin)

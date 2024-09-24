@@ -30,8 +30,8 @@ class NewServicesTestCase(TestCase):
             reverse(URL_NEW), data, content_type='application/json'
         )
         self.assertEqual(request.status_code, 400)
-        self.assertEqual(FieldSelfRelationship.objects.all().count(), 0)
-        FieldSelfRelationship.objects.all().delete()
+        self.assertEqual(FieldLink.objects.all().count(), 0)
+        FieldLink.objects.all().delete()
 
 
     def test_view_field_relationship_post_002(self):
@@ -48,8 +48,8 @@ class NewServicesTestCase(TestCase):
             reverse(URL_NEW), data, content_type='application/json'
         )
         self.assertEqual(request.status_code, 400)
-        self.assertEqual(FieldSelfRelationship.objects.all().count(), 0)
-        FieldSelfRelationship.objects.all().delete()
+        self.assertEqual(FieldLink.objects.all().count(), 0)
+        FieldLink.objects.all().delete()
     
 
     def test_view_field_relationship_post_003(self):
@@ -59,7 +59,7 @@ class NewServicesTestCase(TestCase):
         field1 = Field.objects.create(name='field1')
         field2 = Field.objects.create(name='field2')
         field3 = Field.objects.create(name='field3')
-        existing = FieldSelfRelationship.objects.create(
+        existing = FieldLink.objects.create(
             field=field1, subfield=field2, sequence=1
         )
         data = [
@@ -70,7 +70,7 @@ class NewServicesTestCase(TestCase):
             reverse(URL_NEW), data, content_type='application/json'
         )
         self.assertEqual(request.status_code, 400)
-        self.assertEqual(FieldSelfRelationship.objects.all().count(), 1)
-        obj = FieldSelfRelationship.objects.all().first()
+        self.assertEqual(FieldLink.objects.all().count(), 1)
+        obj = FieldLink.objects.all().first()
         self.assertEqual(existing, obj)
-        FieldSelfRelationship.objects.all().delete()
+        FieldLink.objects.all().delete()

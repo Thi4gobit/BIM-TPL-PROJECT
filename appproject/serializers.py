@@ -5,8 +5,17 @@ from .models import *
 class GroupFieldSerializer(serializers.ModelSerializer):
 
     class Meta:
-        model = GroupField
+        model = Group
         fields = ['id', 'name']
+
+
+class FieldDetailSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField(source='subfield.id')
+    name = serializers.CharField(source='subfield.name')
+
+    class Meta:
+        model = FieldLink
+        fields = ['id', 'name', 'sequence', 'text_before', 'text_after']
 
 
 class FieldSerializer(serializers.ModelSerializer):
@@ -14,6 +23,18 @@ class FieldSerializer(serializers.ModelSerializer):
     class Meta:
         model = Field
         fields = ['id', 'name']
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)     
+        children = FieldDetailSerializer(
+            FieldLink.objects.filter(field=instance.pk).all(), many=True
+        ).data
+        data['children'] = children
+        return data
+
+
+
+
 
 
 class ItemSerializer(serializers.ModelSerializer):
@@ -26,13 +47,13 @@ class ItemSerializer(serializers.ModelSerializer):
 class FieldRelationshipSerializer(serializers.ModelSerializer):
 
     class Meta:
-        model = FieldSelfRelationship
+        model = FieldLink
         fields = [
             'id', 'field', 'subfield', 'sequence', 
             'text_before', 'text_after'
         ]
         extra_kwargs = {
-            'id': {'read_only': False}  # Permite que o campo 'id' seja modificado
+            'id': {'read_only': False}
         }
     
     def validate(self, data):
@@ -43,14 +64,6 @@ class FieldRelationshipSerializer(serializers.ModelSerializer):
                 f"Self-relationship is forbbiden ({field})."
             )
         return data
-    
-    # def update(self, instance, validated_data):
-    #     for attr, value in validated_data.items():
-    #         setattr(instance, attr, value)
-    #     instance.save()
-    #     return instance
-
-
 
 
 class CustomFieldSerializer(serializers.ModelSerializer):
@@ -59,10 +72,9 @@ class CustomFieldSerializer(serializers.ModelSerializer):
     group = GroupFieldSerializer()
 
     class Meta:
-        model = CustomField
+        model = FieldSet
         fields = [
-            'id', 'field', 'group', 'is_required', 'is_unique', 
-            'priority', 'is_description', 'before_text', 'after_text'
+            'id', 'field', 'group', 'priority', 'is_description'
         ]
 
 
@@ -72,7 +84,7 @@ class CustomServiceSerializer(serializers.ModelSerializer):
     field = CustomFieldSerializer()
 
     class Meta:
-        model = CustomService
+        model = Obj
         fields = ['id', 'item', 'field', 'value']
 
 
@@ -82,7 +94,7 @@ class CustomService2Serializer(serializers.ModelSerializer):
     field = serializers.SerializerMethodField()
 
     class Meta:
-        model = CustomService
+        model = Obj
         fields = ['field', 'value']
 
     def get_field(self, obj):

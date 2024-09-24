@@ -6,7 +6,7 @@ urlpatterns = [
     path('group/', GroupFieldListCreateView.as_view(), name='post-list-create'),
     path('group/<int:pk>/', GroupFieldDetailView.as_view(), name='post-detail'),
 
-    path('field/', FieldListCreateView.as_view(), name='post-list-create'),
+    path('field/', FieldListCreateView.as_view(), name='list-or-create-many-field'),
     path('field/<int:pk>/', FieldDetailView.as_view(), name='post-detail'),
 
     path('field-compose/', FieldRelationshipListView.as_view(), name='post-list-field-relationship'),

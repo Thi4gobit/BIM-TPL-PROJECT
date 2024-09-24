@@ -1,7 +1,7 @@
 from django.db import models
 
 
-class GroupField(models.Model):
+class Group(models.Model):
 
     name = models.CharField(max_length=32)
     
@@ -25,15 +25,15 @@ class Item(models.Model):
         return f'{self.item}'
 
 
-class FieldSelfRelationship(models.Model):
+class FieldLink(models.Model):
 
     field = models.ForeignKey(
         Field, on_delete=models.CASCADE,
-        # related_name='fieldselfrelationship_field'
+        related_name='fieldlink_fields'
     )
     subfield = models.ForeignKey(
         Field, on_delete=models.CASCADE,
-        related_name='subfields'
+        related_name='fieldlink_subfields'
     )
     sequence = models.PositiveIntegerField(unique=False)
     text_before = models.CharField(max_length=32, blank=True, null=True)
@@ -51,14 +51,14 @@ class FieldSelfRelationship(models.Model):
         ]
 
 
-class CustomField(models.Model):
+class FieldSet(models.Model):
 
     field = models.ForeignKey(
         Field, on_delete=models.CASCADE,
         related_name='customfield_field'
     )
     group = models.ForeignKey(
-        GroupField, on_delete=models.CASCADE,
+        Group, on_delete=models.CASCADE,
         related_name='customfield_group',
     )
     priority = models.IntegerField(unique=False, blank=True, null=True)
@@ -77,14 +77,14 @@ class CustomField(models.Model):
         ]
 
 
-class CustomService(models.Model):
+class Obj(models.Model):
 
     item = models.ForeignKey(
         Item, on_delete=models.CASCADE,
         related_name='customfieldvalue_item'
     )
     field = models.ForeignKey(
-        CustomField, on_delete=models.CASCADE,
+        FieldSet, on_delete=models.CASCADE,
         related_name='customfieldvalue_field'
     )
     value = models.CharField(
