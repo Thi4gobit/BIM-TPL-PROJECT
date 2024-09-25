@@ -6,139 +6,331 @@ from .serializers import *
 from django.db import IntegrityError, transaction
 
 
+def get_one(pk, model, serial):
+    try:
+        obj = model.objects.get(pk=pk)
+        s = serial(obj)
+        return Response(s.data, status=status.HTTP_200_OK)
+    except model.DoesNotExist:
+        return Response(
+            {'error': 'Not found.'}, status=status.HTTP_404_NOT_FOUND
+        )
+
+def get_many(model, serial):
+    objs = model.objects.all()
+    s = serial(objs, many=True)
+    return Response(s.data, status=status.HTTP_200_OK)
+
+def saved_serialized_obj(data, serial):
+    s = serial(data=data)
+    if s.is_valid():
+        obj = s.save()
+    else:
+        return Response(s.errors, status=status.HTTP_400_BAD_REQUEST)
+    return obj, s
+
 def check_unique(serializer):
-    if serializer.is_valid():
-        try:
-            with transaction.atomic():
-                serializer.save()
-                return Response(
-                    serializer.data, status=status.HTTP_201_CREATED
-                )
-        except IntegrityError as e:
-            if 'unique constraint' in str(e).lower():
-                return Response(
-                    {"error": "Duplicated relationship."},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-            else:
-                return Response(
-                    {"error": "Database integrity error."},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-    return Response(
-        serializer.errors, status=status.HTTP_400_BAD_REQUEST
-    )
+    try:
+        obj = serializer.save()
+        return obj
+    except IntegrityError as e:
+        if 'unique constraint' in str(e).lower():
+            return Response(
+                {"error": "Duplicated relationship."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        else:
+            return Response(
+                {"error": "Database integrity error."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+def save_dependent_objs(data, field, p_field, p_pk, serial):
+    if field in data and data.get(field) and \
+        isinstance(data.get(field), list):
+        for i in data.get(field):
+            i[p_field] = p_pk
+        s = serial(data=data.get(field), many=True)
+        if s.is_valid():
+            if check_unique(s):
+                return s
+        return Response(s.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-def update_many(serializer):
-    if serializer.is_valid():
-        try:
-            with transaction.atomic():
-                for item in serializer.validated_data:
-                    print(item)
-                data_dict = {item['id']: item for item in serializer.validated_data if 'id' in item}
-                objects = FieldLink.objects.filter(id__in=data_dict.keys())
-                updated_ids = []
-                for obj in objects:
-                    data = data_dict[obj.id]
-                    for attr, value in data.items():
-                        if attr != 'id':
-                            setattr(obj, attr, value)
-                    obj.save()
-                    updated_ids.append(obj.id)
-                return Response(serializer.data, status=status.HTTP_200_OK)
-        except IntegrityError as e:
-            if 'unique constraint' in str(e).lower():
-                return Response(
-                    {"error": "Duplicated relationship."},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-            else:
-                return Response(
-                    {"error": "Database integrity error."},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-
-#-----------------------------------------------------------------------
-class GroupFieldListCreateView(generics.ListCreateAPIView):
-    queryset = Group.objects.all()
-    serializer_class = GroupFieldSerializer
-
-
-class GroupFieldDetailView(generics.RetrieveUpdateDestroyAPIView):
-    queryset = Group.objects.all()
-    serializer_class = GroupFieldSerializer
-#-----------------------------------------------------------------------
-#-----------------------------------------------------------------------
 
 # FIELD
-class FieldListCreateView(generics.ListCreateAPIView):
-    serializer_class = FieldSerializer
 
-    def get_queryset(self):
-        return Field.objects.prefetch_related('fieldlink_fields').all()
-
-
-class FieldDetailView(generics.RetrieveUpdateDestroyAPIView):
-    queryset = Field.objects.all()
-    serializer_class = FieldSerializer
+class FieldListOrCreateView(APIView):
+    def get(self, request, *args, **kwargs):
+        field_id = kwargs.get('pk')
+        if field_id:
+            get_one(field_id, Field, FieldSerializer)
+        get_many(Field, FieldSerializer)
     
-#-----------------------------------------------------------------------
-#-----------------------------------------------------------------------
-class FieldRelationshipListView(generics.ListAPIView):
-    queryset = FieldLink.objects.all()
-    serializer_class = FieldRelationshipSerializer
-
-
-class FieldRelationshipCreateView(APIView):
     def post(self, request, *args, **kwargs):
-        serializer = FieldRelationshipSerializer(
-            data=request.data, many=True
-        )
-        return check_unique(serializer)
-
-
-class FieldRelationshipUpdateListView(APIView):
-    def put(self, request, *args, **kwargs):
-        serializer = FieldRelationshipSerializer(
-            data=request.data, many=True
-        )
-        return update_many(serializer)
-#-----------------------------------------------------------------------
-#-----------------------------------------------------------------------
-
-
-
-
-
-
-class CustomFieldCreateView(APIView):
-    def post(self, request, *args, **kwargs):
-        serializer = CustomFieldSerializer(data=request.data, many=True)
-        if serializer.is_valid():
-
-
-            if not any(item.get('is_description', False) for item in request.data):
+        with transaction.atomic():
+            obj, s1 = saved_serialized_obj(request.data, FieldSerializer)
+            s2 = save_dependent_objs(
+                data=request.data, field='children', p_field='field', 
+                p_pk=obj.pk, serial=FieldChildrenSerializer
+            )
+            if s2:
                 return Response(
-                    {"error": "A field must have is_description true."},
+                    [s1.data, s2.data], status=status.HTTP_201_CREATED
+                )
+            return Response(s1.data, status=status.HTTP_201_CREATED)
+
+
+class FieldRetrieveUpdateDeleteView(APIView):
+    def get(self, request, *args, **kwargs):
+        field_id = kwargs.get('pk')
+        if field_id:
+            try:
+                field = Field.objects.get(pk=field_id)
+                serializer = FieldSerializer(field)
+                return Response(
+                    serializer.data, 
+                    status=status.HTTP_200_OK
+                )
+            except Field.DoesNotExist:
+                return Response(
+                    {'error': 'Not found.'},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+        return Response(
+            {'error': 'ID not provided.'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    def put(self, request, *args, **kwargs):
+        field_id = kwargs.get('pk')
+        if field_id:
+            try:
+                field = Field.objects.get(pk=field_id)
+            except Field.DoesNotExist:
+                return Response(
+                    {'error': 'Not found.'},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+            with transaction.atomic():
+                serializer1 = FieldSerializer(field, data=request.data)
+                if serializer1.is_valid():
+                    obj = serializer1.save()
+                else:
+                    return Response(
+                        serializer1.errors, 
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+                if 'children' in request.data and \
+                   isinstance(request.data.get('children'), list):
+                    children = request.data.get('children')
+                    for i in children:
+                        i['field'] = obj.pk
+                    serializer2 = FieldChildrenSerializer(
+                        data=request.data.get('children'), many=True
+                    )
+                    if serializer2.is_valid():
+                        if check_unique(serializer2):
+                            return Response(
+                                [serializer1.data, serializer2.data], 
+                                status=status.HTTP_200_OK
+                            )
+                    return Response(
+                        serializer2.errors, 
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+                return Response(
+                    serializer1.data, status=status.HTTP_200_OK
+                )
+        return Response(
+            {'error': 'ID not provided.'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    def delete(self, request, *args, **kwargs):
+        field_id = kwargs.get('pk')
+        if field_id:
+            try:
+                field = Field.objects.get(pk=field_id)
+                field.delete()
+                return Response(
+                    {'message': 'Deleted successfully.'},
+                    status=status.HTTP_204_NO_CONTENT
+                )
+            except Field.DoesNotExist:
+                return Response(
+                    {'error': 'Not found.'},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+        return Response(
+            {'error': 'ID not provided.'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+
+# GROUP
+
+class GroupListOrCreateView(APIView):
+    def get(self, request, *args, **kwargs):
+        group_id = kwargs.get('pk')
+        if group_id:
+            try:
+                group = Group.objects.get(pk=group_id)
+                serializer = GroupSerializer(group)
+                return Response(
+                    serializer.data,
+                    status=status.HTTP_200_OK
+                )
+            except Group.DoesNotExist:
+                return Response(
+                    {'error': 'Not found.'},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+        groups = Group.objects.all()
+        serializer = GroupSerializer(groups, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    
+    def post(self, request, *args, **kwargs):
+        with transaction.atomic():
+            serializer1 = GroupSerializer(data=request.data)
+            if serializer1.is_valid():
+                obj = serializer1.save()
+            else:
+                return Response(
+                    serializer1.errors, 
                     status=status.HTTP_400_BAD_REQUEST
                 )
-            serializer.save()
+            if 'fields' in request.data and \
+                request.data.get('fields') and \
+                    isinstance(request.data.get('fields'), list):
+                fields = request.data.get('fields')
+                for i in fields:
+                    i['group'] = obj.pk
+                serializer2 = GroupSetSerializer(
+                    data=request.data.get('fields'), many=True
+                )
+                if serializer2.is_valid():
+                    if check_unique(serializer2):
+                        return Response(
+                            [serializer1.data, serializer2.data], 
+                            status=status.HTTP_201_CREATED
+                        )
+                return Response(
+                    serializer2.errors, 
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            return Response(
+                serializer1.data, status=status.HTTP_201_CREATED
+            )
 
 
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+class GroupRetrieveUpdateDeleteView(APIView):
+    def get(self, request, *args, **kwargs):
+        group_id = kwargs.get('pk')
+        if group_id:
+            try:
+                group = Group.objects.get(pk=group_id)
+                serializer = GroupSerializer(group)
+                return Response(
+                    serializer.data, 
+                    status=status.HTTP_200_OK
+                )
+            except Group.DoesNotExist:
+                return Response(
+                    {'error': 'Not found.'},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+        return Response(
+            {'error': 'ID not provided.'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    def put(self, request, *args, **kwargs):
+        group_id = kwargs.get('pk')
+        if group_id:
+            try:
+                group = Group.objects.get(pk=group_id)
+            except Group.DoesNotExist:
+                return Response(
+                    {'error': 'Not found.'},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+            with transaction.atomic():
+                serializer1 = GroupSerializer(group, data=request.data)
+                if serializer1.is_valid():
+                    obj = serializer1.save()
+                else:
+                    return Response(
+                        serializer1.errors, 
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+                if 'children' in request.data and \
+                   isinstance(request.data.get('children'), list):
+                    children = request.data.get('children')
+                    for i in children:
+                        i['group'] = obj.pk
+                    serializer2 = GroupSetSerializer(
+                        data=request.data.get('children'), many=True
+                    )
+                    if serializer2.is_valid():
+                        if check_unique(serializer2):
+                            return Response(
+                                [serializer1.data, serializer2.data], 
+                                status=status.HTTP_200_OK
+                            )
+                    return Response(
+                        serializer2.errors, 
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+                return Response(
+                    serializer1.data, status=status.HTTP_200_OK
+                )
+        return Response(
+            {'error': 'ID not provided.'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
+
+    def delete(self, request, *args, **kwargs):
+        group_id = kwargs.get('pk')
+        if group_id:
+            try:
+                group = Group.objects.get(pk=group_id)
+                group.delete()
+                return Response(
+                    {'message': 'Deleted successfully.'},
+                    status=status.HTTP_204_NO_CONTENT
+                )
+            except Group.DoesNotExist:
+                return Response(
+                    {'error': 'Not found.'},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+        return Response(
+            {'error': 'ID not provided.'},
+            status=status.HTTP_400_BAD_REQUEST
+        )
 
 
 
 
-class ItemListCreateView(generics.ListCreateAPIView):
-    queryset = Item.objects.all()
-    serializer_class = ItemWithCustomFieldsSerializer
 
 
-class ItemDetailView(generics.RetrieveAPIView):
-    queryset = Item.objects.all()
-    serializer_class = ItemWithCustomFieldsSerializer
+
+
+# class CustomFieldCreateView(APIView):
+#     def post(self, request, *args, **kwargs):
+#         serializer = CustomFieldSerializer(data=request.data, many=True)
+#         if serializer.is_valid():
+
+
+#             if not any(item.get('is_description', False) for item in request.data):
+#                 return Response(
+#                     {"error": "A field must have is_description true."},
+#                     status=status.HTTP_400_BAD_REQUEST
+#                 )
+#             serializer.save()
+
+
+#             return Response(serializer.data, status=status.HTTP_201_CREATED)
+#         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

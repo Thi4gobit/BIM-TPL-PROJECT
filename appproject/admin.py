@@ -20,7 +20,7 @@ class ItemAdmin(admin.ModelAdmin):
     search_fields = ['item']
 
 
-class FieldSelfRelationshipAdmin(admin.ModelAdmin):
+class FieldLinkAdmin(admin.ModelAdmin):
 
     exclude = []
     list_display = (
@@ -35,7 +35,7 @@ class CustomFieldAdmin(admin.ModelAdmin):
     exclude = []
     list_display = (
         'pk', 'field__name', 'group__name',
-        'priority'
+        # 'priority'
     )
     # list_display_links = ['field']
     search_fields = ['field__name', 'group__name']
@@ -58,6 +58,6 @@ admin.site.index_title = ""
 admin.site.register(Group, GroupFieldAdmin)
 admin.site.register(Field, FieldAdmin)
 admin.site.register(Item, ItemAdmin)
-admin.site.register(FieldSet, CustomFieldAdmin)
+admin.site.register(GroupSet, CustomFieldAdmin)
 admin.site.register(Obj, CustomServiceAdmin)
-admin.site.register(FieldLink, FieldSelfRelationshipAdmin)
+admin.site.register(FieldLink, FieldLinkAdmin)

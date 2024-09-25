@@ -1,28 +1,13 @@
 from django.db import models
 
 
-class Group(models.Model):
-
-    name = models.CharField(max_length=32)
-    
-    def __str__(self):
-        return self.name
-
-
 class Field(models.Model):
     
     name = models.CharField(max_length=32)
+    template = models.PositiveIntegerField(blank=True, null=True)
 
     def __str__(self):
         return self.name
-
-
-class Item(models.Model):
-
-    item = models.CharField(max_length=255)
-
-    def __str__(self):
-        return f'{self.item}'
 
 
 class FieldLink(models.Model):
@@ -51,29 +36,45 @@ class FieldLink(models.Model):
         ]
 
 
-class FieldSet(models.Model):
+class Group(models.Model):
 
-    field = models.ForeignKey(
-        Field, on_delete=models.CASCADE,
-        related_name='customfield_field'
-    )
+    name = models.CharField(max_length=32)
+    template = models.PositiveIntegerField(blank=True, null=True)
+    
+    def __str__(self):
+        return self.name
+    
+
+class GroupSet(models.Model):
+
     group = models.ForeignKey(
         Group, on_delete=models.CASCADE,
         related_name='customfield_group',
     )
-    is_identifier = models.BooleanField(default=False)
-    is_hidden = models.BooleanField(default=False)
-
+    field = models.ForeignKey(
+        Field, on_delete=models.CASCADE,
+        related_name='customfield_field'
+    )
+    
     def __str__(self):
         return f'{self.field.name}'
     
     class Meta:
         constraints = [
             models.UniqueConstraint(
-                fields=['field', 'group'],
-                name='unique_together_field_group'
+                fields=['group', 'field'],
+                name='unique_together_group_field'
             )
         ]
+
+
+class Item(models.Model):
+
+    item = models.CharField(max_length=255)
+    template = models.PositiveIntegerField(blank=True, null=True)
+
+    def __str__(self):
+        return f'{self.item}'
 
 
 class Obj(models.Model):
@@ -83,12 +84,14 @@ class Obj(models.Model):
         related_name='customfieldvalue_item'
     )
     field = models.ForeignKey(
-        FieldSet, on_delete=models.CASCADE,
+        GroupSet, on_delete=models.CASCADE,
         related_name='customfieldvalue_field'
     )
     value = models.CharField(
         max_length=4000, blank=True, null=True
     )
+    is_identifier = models.BooleanField(default=False)
+    is_hidden = models.BooleanField(default=False)
 
     def __str__(self):
         return f'{self.item.item}.{self.field.field.name}'
