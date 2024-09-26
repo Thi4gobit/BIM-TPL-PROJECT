@@ -87,3 +87,32 @@ class NewServicesTestCase(TestCase):
         self.assertEqual(FieldLink.objects.all().count(), 0)
         FieldLink.objects.all().delete()
         Field.objects.all().delete()
+
+
+    def test_view_field_relationship_new_005(self):
+        """
+        same children (list)
+        """
+        field1 = Field.objects.create(name='field1')
+        field2 = Field.objects.create(name='field2')
+        data = {
+            'name': 'field3',
+            'children': [
+                {
+                    'subfield': field2.pk, 
+                    'sequence': 1
+                }, 
+                {
+                    'subfield': field2.pk, 
+                    'sequence': 2
+                }
+            ]
+        }
+        request = self.client.post(
+            reverse(URL_NEW), data, content_type='application/json'
+        )
+        self.assertEqual(request.status_code, 400)
+        self.assertEqual(Field.objects.all().count(), 2)
+        self.assertEqual(FieldLink.objects.all().count(), 0)
+        FieldLink.objects.all().delete()
+        Field.objects.all().delete()

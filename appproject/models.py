@@ -13,12 +13,10 @@ class Field(models.Model):
 class FieldLink(models.Model):
 
     field = models.ForeignKey(
-        Field, on_delete=models.CASCADE,
-        related_name='fieldlink_fields'
+        Field, on_delete=models.CASCADE,related_name='fieldlink_fields'
     )
     subfield = models.ForeignKey(
-        Field, on_delete=models.CASCADE,
-        related_name='fieldlink_subfields'
+        Field, on_delete=models.CASCADE,related_name='fieldlink_subfields'
     )
     sequence = models.PositiveIntegerField(unique=False)
     text_before = models.CharField(max_length=32, blank=True, null=True)
