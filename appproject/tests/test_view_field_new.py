@@ -7,6 +7,17 @@ URL_NEW = 'list-create-field'
 
 class NewServicesTestCase(TestCase):
 
+    def setUp(self):
+        self.field_url = reverse('field-list-create')
+        self.field_detail_url = lambda pk: reverse('field-detail', kwargs={'pk': pk})
+        self.field_data = {
+            "name": "Campo Principal",
+            "children": [
+                {"subfield": 1, "other_field1": "Valor1", "other_field2": "Valor2"},
+                {"subfield": 2, "other_field1": "Valor3", "other_field2": "Valor4"},
+            ]
+        }
+        
     def test_view_field_relationship_new_001(self):
         """
         children (list)
