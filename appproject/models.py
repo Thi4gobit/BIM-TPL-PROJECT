@@ -3,7 +3,7 @@ from django.db import models
 
 class Field(models.Model):
     
-    name = models.CharField(max_length=32)
+    name = models.CharField(max_length=32, unique=True)
     template = models.PositiveIntegerField(blank=True, null=True)
 
     def __str__(self):
@@ -34,20 +34,20 @@ class FieldLink(models.Model):
         ]
 
 
-class Group(models.Model):
+class Rule(models.Model):
 
-    name = models.CharField(max_length=32)
+    name = models.CharField(max_length=32, unique=True)
     template = models.PositiveIntegerField(blank=True, null=True)
     
     def __str__(self):
         return self.name
     
 
-class GroupSet(models.Model):
+class RuleSet(models.Model):
 
-    group = models.ForeignKey(
-        Group, on_delete=models.CASCADE,
-        related_name='customfield_group',
+    rule = models.ForeignKey(
+        Rule, on_delete=models.CASCADE,
+        related_name='customfield_rule',
     )
     field = models.ForeignKey(
         Field, on_delete=models.CASCADE,
@@ -55,20 +55,20 @@ class GroupSet(models.Model):
     )
     
     def __str__(self):
-        return f'{self.field.name}'
+        return f'{self.rule.name}'
     
     class Meta:
         constraints = [
             models.UniqueConstraint(
-                fields=['group', 'field'],
-                name='unique_together_group_field'
+                fields=['rule', 'field'],
+                name='unique_together_rule_field'
             )
         ]
 
 
 class Item(models.Model):
 
-    item = models.CharField(max_length=255)
+    item = models.CharField(max_length=255, unique=True)
     template = models.PositiveIntegerField(blank=True, null=True)
 
     def __str__(self):
@@ -82,7 +82,7 @@ class Obj(models.Model):
         related_name='customfieldvalue_item'
     )
     field = models.ForeignKey(
-        GroupSet, on_delete=models.CASCADE,
+        RuleSet, on_delete=models.CASCADE,
         related_name='customfieldvalue_field'
     )
     value = models.CharField(

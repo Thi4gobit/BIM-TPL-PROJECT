@@ -58,14 +58,28 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'CORE.wsgi.application'
-
 REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': (
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'seu_app.authentication.ExternalTokenAuthentication',  # Substitua 'seu_app' pelo nome do seu app
+        'rest_framework.authentication.SessionAuthentication',  # Opcional
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticated',
+    ],
+    # Outras configurações
+}
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        #Lista de classes de autenticação que o DRF utilizará. A primeira classe que autenticar com sucesso determinará o usuário autenticado
+        #'seu_app.authentication.ExternalTokenAuthentication',  # Substitua 'seu_app' pelo nome do seu app
         'rest_framework_simplejwt.authentication.JWTAuthentication',
         'rest_framework.authentication.BasicAuthentication',
         'rest_framework.authentication.SessionAuthentication',
         #'rest_framework.authentication.TokenAuthentication',
-    ),
+    ],
+    # 'DEFAULT_PERMISSION_CLASSES': [
+    #     'rest_framework.permissions.IsAuthenticated',
+    # ],
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 }
 
@@ -124,3 +138,6 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # SIMPLE_JWT = {
 #     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=600),
 # }
+
+
+EXTERNAL_AUTH_URL = 'https://outroapp.com/api/validate-token/'

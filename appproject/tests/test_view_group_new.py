@@ -29,8 +29,8 @@ class NewServicesTestCase(TestCase):
         )
         self.assertEqual(request.status_code, 201)
         self.assertEqual(Field.objects.all().count(), 2)
-        self.assertEqual(Group.objects.all().count(), 1)
-        Group.objects.all().delete()
+        self.assertEqual(Rule.objects.all().count(), 1)
+        Rule.objects.all().delete()
         Field.objects.all().delete()
 
 
@@ -47,8 +47,8 @@ class NewServicesTestCase(TestCase):
         )
         self.assertEqual(request.status_code, 201)
         self.assertEqual(Field.objects.all().count(), 0)
-        self.assertEqual(Group.objects.all().count(), 1)
-        Group.objects.all().delete()
+        self.assertEqual(Rule.objects.all().count(), 1)
+        Rule.objects.all().delete()
         Field.objects.all().delete()
 
 
@@ -65,8 +65,8 @@ class NewServicesTestCase(TestCase):
         )
         self.assertEqual(request.status_code, 201)
         self.assertEqual(Field.objects.all().count(), 0)
-        self.assertEqual(Group.objects.all().count(), 1)
-        Group.objects.all().delete()
+        self.assertEqual(Rule.objects.all().count(), 1)
+        Rule.objects.all().delete()
         Field.objects.all().delete()
 
 
@@ -82,6 +82,6 @@ class NewServicesTestCase(TestCase):
         )
         self.assertEqual(request.status_code, 201)
         self.assertEqual(Field.objects.all().count(), 0)
-        self.assertEqual(Group.objects.all().count(), 1)
-        Group.objects.all().delete()
+        self.assertEqual(Rule.objects.all().count(), 1)
+        Rule.objects.all().delete()
         Field.objects.all().delete()

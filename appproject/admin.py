@@ -34,11 +34,11 @@ class CustomFieldAdmin(admin.ModelAdmin):
 
     exclude = []
     list_display = (
-        'pk', 'field__name', 'group__name',
+        'pk', 'field__name', 'rule__name',
         # 'priority'
     )
     # list_display_links = ['field']
-    search_fields = ['field__name', 'group__name']
+    search_fields = ['field__name', 'rule__name']
     # list_filter = ['is_required', 'is_unique']
     show_facets = admin.ShowFacets.ALWAYS
 
@@ -55,9 +55,9 @@ class CustomServiceAdmin(admin.ModelAdmin):
 admin.site.site_header = ""
 admin.site.site_title = "BIM-PROJECT"
 admin.site.index_title = ""
-admin.site.register(Group, GroupFieldAdmin)
+admin.site.register(Rule, GroupFieldAdmin)
 admin.site.register(Field, FieldAdmin)
 admin.site.register(Item, ItemAdmin)
-admin.site.register(GroupSet, CustomFieldAdmin)
+admin.site.register(RuleSet, CustomFieldAdmin)
 admin.site.register(Obj, CustomServiceAdmin)
 admin.site.register(FieldLink, FieldLinkAdmin)

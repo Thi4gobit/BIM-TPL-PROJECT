@@ -31,20 +31,20 @@ class FieldSerializer(serializers.ModelSerializer):
 class GroupSetSerializer(serializers.ModelSerializer):
 
     class Meta:
-        model = GroupSet
+        model = RuleSet
         fields = '__all__'
 
 
 class GroupSerializer(serializers.ModelSerializer):
 
     class Meta:
-        model = Group
+        model = Rule
         fields = '__all__'
 
     def to_representation(self, instance):
         data = super().to_representation(instance)     
         fields = GroupSetSerializer(
-            GroupSet.objects.filter(group=instance.pk).all(), 
+            RuleSet.objects.filter(group=instance.pk).all(), 
             many=True
         ).data
         data['fields'] = fields
