@@ -1,6 +1,17 @@
-# serializers.py
 from rest_framework import serializers
 from .models import Field, FieldLink
+
+class UniqueSequenceListSerializer(serializers.ListSerializer):
+    def validate(self, data):
+        """
+        Validate that sequences are unique within the same field.
+        """
+        sequences = [item['sequence'] for item in data]
+        if len(sequences) != len(set(sequences)):
+            raise serializers.ValidationError(
+                "Sequences must be unique within the same field."
+            )
+        return data
 
 class FieldChildrenSerializer(serializers.ModelSerializer):
     class Meta:
@@ -8,6 +19,7 @@ class FieldChildrenSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'field', 'subfield', 'sequence', 'text_before', 'text_after'
         ]
+        list_serializer_class = UniqueSequenceListSerializer
 
     def validate_subfield(self, value):
         """
@@ -18,6 +30,12 @@ class FieldChildrenSerializer(serializers.ModelSerializer):
                 f"invalid pk: {value.pk}."
             )
         return value
+    
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        del data['field']
+        return data
+
 
 class FieldSerializer(serializers.ModelSerializer):
     class Meta:
@@ -41,34 +59,11 @@ class FieldSerializer(serializers.ModelSerializer):
             serializer.save()
         return obj
 
-    # def validate_children(self, value):
-    #     """
-    #     Validate if 'children' is a list of valid objects.
-    #     """
-    #     if not isinstance(value, list):
-    #         raise serializers.ValidationError(
-    #             "Children must be a list of objects."
-    #         )
-    #     return value
+    def get_children(self, obj):
+        children = FieldLink.objects.filter(field=obj)
+        return FieldChildrenSerializer(children, many=True).data
 
-    # def get_children(self, obj):
-    #     children = FieldLink.objects.filter(field=obj)
-    #     return FieldChildrenSerializer(children, many=True).data
-
-    # def to_representation(self, instance):
-    #     data = super().to_representation(instance)
-    #     data['children'] = self.get_children(instance)
-    #     return data
-    
-    # def to_representation(self, instance):
-    #     data = super().to_representation(instance)     
-    #     children = FieldChildrenSerializer(
-    #         FieldLink.objects.filter(field=instance.pk).all(), 
-    #         many=True
-    #     ).data
-    #     data['children'] = children
-    #     return data
-
-    # def get_children(self, obj):
-    #     children = FieldLink.objects.filter(field=obj)
-    #     return FieldChildrenSerializer(children, many=True).data
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        data['children'] = self.get_children(instance)
+        return data
